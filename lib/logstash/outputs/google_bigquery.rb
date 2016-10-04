@@ -357,9 +357,9 @@ class LogStash::Outputs::GoogleBigQuery < LogStash::Outputs::Base
     @uploader = Thread.new do
       @logger.debug("BQ: starting uploader")
       while true
-        filename = @upload_queue.pop
-
         @mutex.synchronize {
+          filename = @upload_queue.pop
+
           # Reenqueue if it is still the current file.
           if filename == @temp_file.to_path
             if @current_base_path == get_base_path()
@@ -380,18 +380,18 @@ class LogStash::Outputs::GoogleBigQuery < LogStash::Outputs::Base
               end
             end
           end
-        }
 
-        if File.size(filename) > 0
-          job_id = upload_object(filename)
-          @delete_queue << { "filename" => filename, "job_id" => job_id }
-          File.open(filename + ".bqjob", 'w') { |file| file.write(job_id) }
-        else
-          @logger.debug("BQ: skipping empty file.")
-          @logger.debug("BQ: delete local temporary file ",
-                        :filename => filename)
-          File.delete(filename)
-        end
+          if File.size(filename) > 0
+            job_id = upload_object(filename)
+            @delete_queue << { "filename" => filename, "job_id" => job_id }
+            File.open(filename + ".bqjob", 'w') { |file| file.write(job_id) }
+          else
+            @logger.debug("BQ: skipping empty file.")
+            @logger.debug("BQ: delete local temporary file ",
+                          :filename => filename)
+            File.delete(filename)
+          end
+        }
 
         sleep @uploader_interval_secs
       end
