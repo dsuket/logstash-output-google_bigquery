@@ -221,12 +221,6 @@ class LogStash::Outputs::GoogleBigQuery < LogStash::Outputs::Base
     new_base_path = get_base_path()
     # Time to roll file based on the date pattern? Or are we due to upload it to BQ?
     if (@current_base_path != new_base_path || Time.now - @last_file_time >= @uploader_interval_secs)
-      @logger.debug("BQ: log file will be closed and uploaded",
-                    :filename => File.basename(@temp_file.to_path),
-                    :size => @temp_file.size.to_s,
-                    :uploader_interval_secs => @uploader_interval_secs.to_s)
-      # Close alone does not guarantee that data is physically written to disk,
-      # so flushing it before.
       initialize_next_log()
     end
 
@@ -367,8 +361,6 @@ class LogStash::Outputs::GoogleBigQuery < LogStash::Outputs::Base
               sleep @uploader_interval_secs
               next
             else
-              @logger.debug("BQ: flush and close file to be uploaded.",
-                            :filename => filename)
               initialize_next_log()
             end
           end
@@ -474,6 +466,12 @@ class LogStash::Outputs::GoogleBigQuery < LogStash::Outputs::Base
       if Time.now - @last_file_time < @uploader_interval_secs
         return
       end
+      @logger.debug("BQ: log file will be closed and uploaded",
+                    :filename => File.basename(@temp_file.to_path),
+                    :size => @temp_file.size.to_s,
+                    :uploader_interval_secs => @uploader_interval_secs.to_s)
+      # Close alone does not guarantee that data is physically written to disk,
+      # so flushing it before.
       @temp_file.fsync()
       @temp_file.close()
 
